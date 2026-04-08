@@ -1,13 +1,8 @@
-const sales = [
-  { name: "Steven Summer", time: "02 Minutes Ago", amount: "+KES 52.00" },
-  { name: "Jordan Maizee", time: "03 Minutes Ago", amount: "+KES 83.00" },
-  { name: "Jessica Alba", time: "05 Minutes Ago", amount: "+KES 61.60" },
-  { name: "Anna Armas", time: "05 Minutes Ago", amount: "+KES 2,351.00" },
-  { name: "Angelina Boo", time: "10 Minutes Ago", amount: "+KES 152.00" },
-  { name: "Anastasia Koss", time: "12 Minutes Ago", amount: "+KES 542.00" },
-];
+import { useTransactions } from "@/contexts/TransactionContext";
 
 const RecentSales = () => {
+  const { transactions } = useTransactions();
+
   return (
     <div className="bg-card rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
@@ -16,16 +11,16 @@ const RecentSales = () => {
       </div>
 
       <div className="space-y-4">
-        {sales.map((sale, i) => (
-          <div key={i} className="flex items-center gap-3">
+        {transactions.slice(0, 6).map((tx) => (
+          <div key={tx.id} className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-foreground">
-              {sale.name.charAt(0)}
+              {tx.memberName.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{sale.name}</p>
-              <p className="text-xs text-muted-foreground">{sale.time}</p>
+              <p className="text-sm font-medium text-foreground truncate">{tx.memberName}</p>
+              <p className="text-xs text-muted-foreground">{tx.date}</p>
             </div>
-            <span className="text-sm font-semibold text-primary">{sale.amount}</span>
+            <span className="text-sm font-semibold text-primary">+UGX {tx.amount.toLocaleString()}</span>
           </div>
         ))}
       </div>

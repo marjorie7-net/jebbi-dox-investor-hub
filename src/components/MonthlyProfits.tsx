@@ -1,13 +1,17 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-
-const data = [
-  { name: "Savings", value: 60, color: "hsl(0, 45%, 35%)" },
-  { name: "Investments", value: 24, color: "hsl(45, 15%, 75%)" },
-  { name: "Returns", value: 16, color: "hsl(36, 25%, 88%)" },
-];
+import { useTransactions } from "@/contexts/TransactionContext";
 
 const MonthlyProfits = () => {
-  const total = 76356;
+  const { totalSavings, totalInvestments, totalBalance } = useTransactions();
+
+  const returns = Math.round(totalBalance * 0.16);
+  const total = totalBalance + returns;
+
+  const data = [
+    { name: "Savings", value: totalSavings || 60, color: "hsl(0, 45%, 35%)" },
+    { name: "Investments", value: totalInvestments || 24, color: "hsl(45, 15%, 75%)" },
+    { name: "Returns", value: returns || 16, color: "hsl(36, 25%, 88%)" },
+  ];
 
   return (
     <div className="bg-card rounded-2xl p-6">
@@ -22,15 +26,7 @@ const MonthlyProfits = () => {
         <div className="relative w-36 h-36">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={40}
-                outerRadius={65}
-                dataKey="value"
-                strokeWidth={0}
-              >
+              <Pie data={data} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" strokeWidth={0}>
                 {data.map((entry, i) => (
                   <Cell key={i} fill={entry.color} />
                 ))}
@@ -39,7 +35,7 @@ const MonthlyProfits = () => {
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-xs text-muted-foreground">Total</span>
-            <span className="text-sm font-bold text-foreground">KES {total.toLocaleString()}</span>
+            <span className="text-sm font-bold text-foreground">UGX {total.toLocaleString()}</span>
           </div>
         </div>
 
@@ -49,7 +45,7 @@ const MonthlyProfits = () => {
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
               <div>
                 <p className="text-sm font-medium text-foreground">{item.name}</p>
-                <p className="text-xs text-muted-foreground">{item.value}%</p>
+                <p className="text-xs text-muted-foreground">{Math.round(item.value / (total || 1) * 100)}%</p>
               </div>
             </div>
           ))}

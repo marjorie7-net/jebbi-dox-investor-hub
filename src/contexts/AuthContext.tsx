@@ -1,4 +1,4 @@
-import { useState, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 
 interface User {
   email: string;
@@ -14,16 +14,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Mock user database
-const mockUsers: { email: string; password: string; name: string }[] = [
-  { email: "demo@jebbidox.com", password: "password123", name: "Mark Johnson" },
-];
+// Mock user database - persisted in localStorage
+const getUsers = (): { email: string; password: string; name: string }[] => {
+  const stored = localStorage.getItem("jebbidox_users");
+  if (stored) return JSON.parse(stored);
+  const defaults = [
+    { email: "demo@jebbidox.com", password: "password123", name: "Mark Johnson" },
+  ];
+  localStorage.setItem("jebbidox_users", JSON.stringify(defaults));
+  return defaults;
+};
+
+const saveUsers = (users: { email: string; password: string; name: string }[]) => {
+  localStorage.setItem("jebbidox_users", JSON.stringify(users));
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = localStorage.getItem("jebbidox_user");
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("jebbidox_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("jebbidox_user");
+    }
+  }, [user]);
 
   const login = (email: string, password: string): boolean => {
-    const found = mockUsers.find(
+    const users = getUsers();
+    const found = users.find(
       (u) => u.email === email && u.password === password
     );
     if (found) {
@@ -34,9 +56,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signup = (name: string, email: string, password: string): boolean => {
-    const exists = mockUsers.find((u) => u.email === email);
+    const users = getUsers();
+    const exists = users.find((u) => u.email === email);
     if (exists) return false;
-    mockUsers.push({ email, password, name });
+    users.push({ email, password, name });
+    saveUsers(users);
     setUser({ email, name });
     return true;
   };

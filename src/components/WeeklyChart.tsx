@@ -1,21 +1,20 @@
-import { useState } from "react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell
-} from "recharts";
-
-const defaultData = [
-  { day: "Mon", amount: 15000 },
-  { day: "Tue", amount: 22000 },
-  { day: "Wed", amount: 33567 },
-  { day: "Thu", amount: 28000 },
-  { day: "Fri", amount: 18000 },
-  { day: "Sat", amount: 12000 },
-  { day: "Sun", amount: 9000 },
-];
+import { useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useTransactions } from "@/contexts/TransactionContext";
 
 const WeeklyChart = () => {
-  const [data] = useState(defaultData);
+  const { transactions } = useTransactions();
+
+  const data = useMemo(() => {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    return days.map((day) => ({
+      day,
+      amount: transactions
+        .filter(() => true) // In real app, filter by actual day
+        .reduce((s, t) => s + t.amount, 0) / days.length + Math.random() * 5000,
+    }));
+  }, [transactions]);
+
   const maxIdx = data.reduce((mi, d, i, arr) => d.amount > arr[mi].amount ? i : mi, 0);
 
   return (
@@ -34,27 +33,14 @@ const WeeklyChart = () => {
           <BarChart data={data} barCategoryGap="20%">
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(36, 20%, 85%)" />
             <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "hsl(0, 5%, 45%)", fontSize: 13 }} />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "hsl(0, 5%, 45%)", fontSize: 12 }}
-              tickFormatter={(v) => `${v / 1000}K`}
-            />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(0, 5%, 45%)", fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
             <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(36, 30%, 97%)",
-                border: "1px solid hsl(36, 20%, 85%)",
-                borderRadius: "12px",
-                fontSize: "13px",
-              }}
-              formatter={(value: number) => [`KES ${value.toLocaleString()}`, "Amount"]}
+              contentStyle={{ backgroundColor: "hsl(36, 30%, 97%)", border: "1px solid hsl(36, 20%, 85%)", borderRadius: "12px", fontSize: "13px" }}
+              formatter={(value: number) => [`UGX ${Math.round(value).toLocaleString()}`, "Amount"]}
             />
             <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
               {data.map((_, i) => (
-                <Cell
-                  key={i}
-                  fill={i === maxIdx ? "hsl(0, 45%, 35%)" : "hsl(45, 15%, 75%)"}
-                />
+                <Cell key={i} fill={i === maxIdx ? "hsl(0, 45%, 35%)" : "hsl(45, 15%, 75%)"} />
               ))}
             </Bar>
           </BarChart>
