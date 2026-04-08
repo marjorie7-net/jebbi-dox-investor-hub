@@ -1,30 +1,14 @@
-import { useState } from "react";
 import { TrendingUp, DollarSign, PiggyBank } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTransactions } from "@/contexts/TransactionContext";
 
 const StatsCards = () => {
+  const { totalBalance, totalInvestments, totalSavings } = useTransactions();
+
   const stats = [
-    {
-      label: "Balance",
-      value: "KES 56,874",
-      change: "+17%",
-      icon: DollarSign,
-      color: "bg-accent",
-    },
-    {
-      label: "Investments",
-      value: "KES 24,575",
-      change: "+23%",
-      icon: TrendingUp,
-      color: "bg-secondary",
-    },
-    {
-      label: "Savings",
-      value: "KES 32,299",
-      change: "+12%",
-      icon: PiggyBank,
-      color: "bg-muted",
-    },
+    { label: "Balance", value: `UGX ${totalBalance.toLocaleString()}`, change: "+17%", icon: DollarSign, color: "bg-accent" },
+    { label: "Investments", value: `UGX ${totalInvestments.toLocaleString()}`, change: "+23%", icon: TrendingUp, color: "bg-secondary" },
+    { label: "Savings", value: `UGX ${totalSavings.toLocaleString()}`, change: "+12%", icon: PiggyBank, color: "bg-muted" },
   ];
 
   return (

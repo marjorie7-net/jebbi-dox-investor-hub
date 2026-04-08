@@ -1,10 +1,8 @@
-const orders = [
-  { name: "David Astee", amount: "KES 1,456", status: "Pending", date: "11 Sep 2024" },
-  { name: "Maria Hulama", amount: "KES 42,437", status: "Completed", date: "11 Sep 2024" },
-  { name: "Arnold Swarz", amount: "KES 3,412", status: "Completed", date: "11 Sep 2024" },
-];
+import { useTransactions } from "@/contexts/TransactionContext";
 
 const LastOrders = () => {
+  const { transactions } = useTransactions();
+
   return (
     <div className="bg-card rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
@@ -20,31 +18,39 @@ const LastOrders = () => {
           <thead>
             <tr className="border-b border-border">
               <th className="text-left py-3 text-muted-foreground font-medium">Member</th>
+              <th className="text-left py-3 text-muted-foreground font-medium">Type</th>
               <th className="text-left py-3 text-muted-foreground font-medium">Amount</th>
               <th className="text-left py-3 text-muted-foreground font-medium">Status</th>
               <th className="text-left py-3 text-muted-foreground font-medium">Date</th>
             </tr>
           </thead>
           <tbody>
-            {orders.map((order, i) => (
-              <tr key={i} className="border-b border-border/50 last:border-0">
+            {transactions.slice(0, 5).map((tx) => (
+              <tr key={tx.id} className="border-b border-border/50 last:border-0">
                 <td className="py-3 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-foreground">
-                    {order.name.charAt(0)}
+                    {tx.memberName.charAt(0)}
                   </div>
-                  <span className="font-medium text-foreground">{order.name}</span>
+                  <span className="font-medium text-foreground">{tx.memberName}</span>
                 </td>
-                <td className="py-3 text-foreground">{order.amount}</td>
                 <td className="py-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    order.status === "Completed"
+                    tx.type === "savings" ? "bg-primary/10 text-primary" : "bg-accent text-foreground"
+                  }`}>
+                    {tx.type}
+                  </span>
+                </td>
+                <td className="py-3 text-foreground">UGX {tx.amount.toLocaleString()}</td>
+                <td className="py-3">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    tx.status === "Completed"
                       ? "bg-success/10 text-success"
                       : "bg-accent text-muted-foreground"
                   }`}>
-                    {order.status}
+                    {tx.status}
                   </span>
                 </td>
-                <td className="py-3 text-muted-foreground">{order.date}</td>
+                <td className="py-3 text-muted-foreground">{tx.date}</td>
               </tr>
             ))}
           </tbody>
