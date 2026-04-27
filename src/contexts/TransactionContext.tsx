@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./AuthContext";
 
 export interface Transaction {
   id: string;
@@ -13,35 +15,66 @@ export interface Transaction {
 
 interface TransactionContextType {
   transactions: Transaction[];
-  addTransaction: (t: Omit<Transaction, "id" | "date">) => void;
+  addTransaction: (t: Omit<Transaction, "id" | "date">) => Promise<void>;
   totalSavings: number;
   totalInvestments: number;
   totalBalance: number;
+  loading: boolean;
 }
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
 
-const defaultTransactions: Transaction[] = [
-  { id: "1", memberName: "David Astee", memberEmail: "david@jebbidox.com", type: "savings", amount: 1456, description: "Monthly savings", status: "Pending", date: "11 Sep 2024" },
-  { id: "2", memberName: "Maria Hulama", memberEmail: "maria@jebbidox.com", type: "investment", amount: 42437, description: "Stock investment", status: "Completed", date: "11 Sep 2024" },
-  { id: "3", memberName: "Arnold Swarz", memberEmail: "arnold@jebbidox.com", type: "savings", amount: 3412, description: "Weekly savings", status: "Completed", date: "11 Sep 2024" },
-];
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
 export const TransactionProvider = ({ children }: { children: ReactNode }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const stored = localStorage.getItem("jebbidox_transactions");
-    return stored ? JSON.parse(stored) : defaultTransactions;
-  });
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const addTransaction = (t: Omit<Transaction, "id" | "date">) => {
-    const newTx: Transaction = {
-      ...t,
-      id: crypto.randomUUID(),
-      date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-    };
-    const updated = [newTx, ...transactions];
-    setTransactions(updated);
-    localStorage.setItem("jebbidox_transactions", JSON.stringify(updated));
+  const fetchTransactions = useCallback(async () => {
+    if (!user) {
+      setTransactions([]);
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setTransactions(
+        data.map((r: any) => ({
+          id: r.id,
+          memberName: r.member_name,
+          memberEmail: r.member_email,
+          type: r.type,
+          amount: Number(r.amount),
+          description: r.description,
+          status: r.status,
+          date: formatDate(r.created_at),
+        }))
+      );
+    }
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  const addTransaction = async (t: Omit<Transaction, "id" | "date">) => {
+    if (!user) return;
+    const { error } = await supabase.from("transactions").insert({
+      user_id: user.id,
+      member_name: t.memberName,
+      member_email: t.memberEmail,
+      type: t.type,
+      amount: t.amount,
+      description: t.description,
+      status: t.status,
+    });
+    if (!error) await fetchTransactions();
   };
 
   const totalSavings = transactions.filter(t => t.type === "savings").reduce((s, t) => s + t.amount, 0);
@@ -49,7 +82,7 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
   const totalBalance = totalSavings + totalInvestments;
 
   return (
-    <TransactionContext.Provider value={{ transactions, addTransaction, totalSavings, totalInvestments, totalBalance }}>
+    <TransactionContext.Provider value={{ transactions, addTransaction, totalSavings, totalInvestments, totalBalance, loading }}>
       {children}
     </TransactionContext.Provider>
   );
