@@ -15,7 +15,7 @@ import { Search, Bell, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, profileName, signOut } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("Dashboard");
@@ -58,10 +58,10 @@ const Dashboard = () => {
 
       <div className={`fixed lg:static inset-y-0 left-0 z-50 w-64 transform transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <DashboardSidebar
-          userName={user.name}
+          userName={profileName || user.email || ""}
           activeNav={activeNav}
           onNavChange={(nav) => { setActiveNav(nav); setSidebarOpen(false); }}
-          onLogout={() => { logout(); navigate("/"); }}
+          onLogout={async () => { await signOut(); navigate("/"); }}
           onClose={() => setSidebarOpen(false)}
         />
       </div>

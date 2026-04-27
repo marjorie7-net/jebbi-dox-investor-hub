@@ -1,74 +1,103 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
-
-interface User {
-  email: string;
-  name: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import type { Session, User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string) => boolean;
-  logout: () => void;
+  session: Session | null;
+  profileName: string;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (name: string, email: string, password: string) => Promise<{ error: string | null; needsOtp: boolean }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: string | null }>;
+  resendOtp: (email: string) => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Mock user database - persisted in localStorage
-const getUsers = (): { email: string; password: string; name: string }[] => {
-  const stored = localStorage.getItem("jebbidox_users");
-  if (stored) return JSON.parse(stored);
-  const defaults = [
-    { email: "demo@jebbidox.com", password: "password123", name: "Mark Johnson" },
-  ];
-  localStorage.setItem("jebbidox_users", JSON.stringify(defaults));
-  return defaults;
-};
-
-const saveUsers = (users: { email: string; password: string; name: string }[]) => {
-  localStorage.setItem("jebbidox_users", JSON.stringify(users));
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem("jebbidox_user");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profileName, setProfileName] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("jebbidox_user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("jebbidox_user");
-    }
-  }, [user]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      if (newSession?.user) {
+        setTimeout(async () => {
+          const { data } = await supabase.from("profiles").select("name").eq("id", newSession.user.id).maybeSingle();
+          setProfileName(data?.name || newSession.user.email?.split("@")[0] || "");
+        }, 0);
+      } else {
+        setProfileName("");
+      }
+    });
 
-  const login = (email: string, password: string): boolean => {
-    const users = getUsers();
-    const found = users.find(
-      (u) => u.email === email && u.password === password
-    );
-    if (found) {
-      setUser({ email: found.email, name: found.name });
-      return true;
-    }
-    return false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    // Verify credentials first, then require OTP
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    // Sign out immediately - we require OTP before granting session
+    await supabase.auth.signOut();
+    // Send OTP email
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    if (otpError) return { error: otpError.message };
+    return { error: null };
   };
 
-  const signup = (name: string, email: string, password: string): boolean => {
-    const users = getUsers();
-    const exists = users.find((u) => u.email === email);
-    if (exists) return false;
-    users.push({ email, password, name });
-    saveUsers(users);
-    setUser({ email, name });
-    return true;
+  const signUp = async (name: string, email: string, password: string) => {
+    const redirectUrl = `${window.location.origin}/dashboard`;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectUrl, data: { name } },
+    });
+    if (error) return { error: error.message, needsOtp: false };
+    return { error: null, needsOtp: true };
   };
 
-  const logout = () => setUser(null);
+  const verifyOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  const resendOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/`,
+    });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, session, profileName, loading, signIn, signUp, verifyOtp, resendOtp, resetPassword, signOut }}>
       {children}
     </AuthContext.Provider>
   );

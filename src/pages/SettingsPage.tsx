@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const SettingsPage = () => {
-  const { user } = useAuth();
+  const { user, profileName } = useAuth();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
 
@@ -27,7 +27,7 @@ const SettingsPage = () => {
         <div className="grid gap-4">
           <div className="space-y-2">
             <Label>Name</Label>
-            <Input defaultValue={user?.name} className="bg-background" />
+            <Input defaultValue={profileName} className="bg-background" />
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
