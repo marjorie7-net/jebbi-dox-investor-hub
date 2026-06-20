@@ -22,26 +22,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        setTimeout(async () => {
-          const { data } = await supabase.from("profiles").select("name").eq("id", newSession.user.id).maybeSingle();
-          setProfileName(data?.name || newSession.user.email?.split("@")[0] || "");
-        }, 0);
-      } else {
-        setProfileName("");
-      }
+      void loadProfileName(newSession?.user ?? null);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return;
       setSession(session);
       setUser(session?.user ?? null);
+      void loadProfileName(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadProfileName = async (activeUser: User | null) => {
