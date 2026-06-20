@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import DashboardSidebar from "@/components/DashboardSidebar";
@@ -15,15 +15,16 @@ import { Search, Bell, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const Dashboard = () => {
-  const { user, profileName, signOut } = useAuth();
+  const { user, profileName, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("Dashboard");
 
-  if (!user) {
-    navigate("/");
-    return null;
-  }
+  useEffect(() => {
+    if (!loading && !user) navigate("/");
+  }, [loading, user, navigate]);
+
+  if (loading || !user) return null;
 
   const renderContent = () => {
     switch (activeNav) {
