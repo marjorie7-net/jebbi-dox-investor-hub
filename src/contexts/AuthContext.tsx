@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      void loadProfileName(newSession?.user ?? null);
+      setTimeout(() => void loadProfileName(newSession?.user ?? null), 0);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
