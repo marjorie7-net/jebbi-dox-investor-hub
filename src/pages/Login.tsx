@@ -6,19 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, TrendingUp, Mail } from "lucide-react";
+import { Eye, EyeOff, TrendingUp } from "lucide-react";
 
-type Mode = "login" | "signup" | "forgot" | "otp";
+type Mode = "login" | "signup" | "forgot";
 
 const Login = () => {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
-  const { user, signIn, signUp, verifyOtp, resendOtp, resetPassword } = useAuth();
+  const { user, signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -38,8 +37,8 @@ const Login = () => {
     if (error) {
       toast({ title: "Login Invalid", description: error, variant: "destructive" });
     } else {
-      toast({ title: "Verification Code Sent", description: `Check ${email} for your one-time passcode.` });
-      setMode("otp");
+      toast({ title: "Login Success", description: "Welcome to Jebbi Dox!" });
+      navigate("/dashboard");
     }
   };
 
@@ -55,37 +54,9 @@ const Login = () => {
     if (error) {
       toast({ title: "Sign Up Failed", description: error, variant: "destructive" });
     } else {
-      toast({ title: "Verify Your Email", description: `We sent a code to ${email}.` });
-      setMode("otp");
-    }
-  };
-
-  const handleOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp) {
-      toast({ title: "Code Required", description: "Enter the code from your email.", variant: "destructive" });
-      return;
-    }
-    setBusy(true);
-    const { error } = await verifyOtp(email, otp);
-    setBusy(false);
-    if (error) {
-      toast({ title: "Invalid Code", description: error, variant: "destructive" });
-    } else {
-      toast({ title: "Login Success", description: "Welcome to Jebbi Dox!" });
+      toast({ title: "Account Created", description: "Welcome to Jebbi Dox!" });
       navigate("/dashboard");
     }
-  };
-
-  const handleResend = async () => {
-    setBusy(true);
-    const { error } = await resendOtp(email);
-    setBusy(false);
-    toast({
-      title: error ? "Error" : "Code Resent",
-      description: error || `A new code was sent to ${email}.`,
-      variant: error ? "destructive" : "default",
-    });
   };
 
   const handleForgot = async (e: React.FormEvent) => {
@@ -141,39 +112,14 @@ const Login = () => {
             {mode === "login" && "Welcome Back"}
             {mode === "signup" && "Create Account"}
             {mode === "forgot" && "Reset Password"}
-            {mode === "otp" && "Verify Your Email"}
           </h2>
           <p className="text-muted-foreground mb-8">
             {mode === "login" && "Sign in to your investment dashboard"}
             {mode === "signup" && "Join the youth investment club"}
             {mode === "forgot" && "Enter your email to receive a reset link"}
-            {mode === "otp" && `Enter the 6-digit code sent to ${email}`}
           </p>
 
-          {mode === "otp" ? (
-            <form onSubmit={handleOtp} className="space-y-5">
-              <div className="space-y-2">
-                <Label className="text-foreground">One-Time Passcode</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input value={otp} onChange={e => setOtp(e.target.value)} placeholder="123456" maxLength={6}
-                    className="h-12 pl-11 bg-background border-border tracking-widest text-center text-lg" />
-                </div>
-              </div>
-              <Button type="submit" disabled={busy} className="w-full h-12 text-base font-semibold rounded-xl">
-                {busy ? "Verifying..." : "Verify & Sign In"}
-              </Button>
-              <div className="flex items-center justify-between text-sm">
-                <button type="button" onClick={() => setMode("login")} className="text-muted-foreground hover:text-foreground">
-                  ← Back to login
-                </button>
-                <button type="button" onClick={handleResend} disabled={busy} className="text-primary font-semibold hover:underline">
-                  Resend code
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={mode === "login" ? handleLogin : mode === "signup" ? handleSignup : handleForgot} className="space-y-5">
+          <form onSubmit={mode === "login" ? handleLogin : mode === "signup" ? handleSignup : handleForgot} className="space-y-5">
               {mode === "signup" && (
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-foreground">Full Name</Label>
@@ -208,10 +154,8 @@ const Login = () => {
                 {busy ? "Please wait..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
               </Button>
             </form>
-          )}
 
-          {mode !== "otp" && (
-            <div className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-6 text-center text-sm text-muted-foreground">
               {mode === "login" && (
                 <>Don't have an account?{" "}
                   <button onClick={() => setMode("signup")} className="text-primary font-semibold hover:underline">Sign Up</button>
@@ -223,7 +167,6 @@ const Login = () => {
                 </>
               )}
             </div>
-          )}
         </motion.div>
       </div>
     </div>
